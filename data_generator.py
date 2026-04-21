@@ -116,6 +116,9 @@ def generate_row(columns: List[ColumnInfo]) -> Dict[str, Any]:
     """
     row: Dict[str, Any] = {}
     for col in columns:
+        # Skip auto-increment columns — the DB generates these values
+        if col.is_auto_increment:
+            continue
         if col.is_nullable and random.random() < config.NULLABLE_NULL_PROBABILITY:
             row[col.name] = None
         else:

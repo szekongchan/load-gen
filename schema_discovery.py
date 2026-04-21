@@ -24,6 +24,7 @@ class ColumnInfo:
     char_max_length: Optional[int]   # Only set for character types
     numeric_precision: Optional[int]
     numeric_scale: Optional[int]
+    is_auto_increment: bool = False  # True for AUTO_INCREMENT / SERIAL columns
 
 
 def _get_connection():
@@ -74,7 +75,8 @@ SELECT
     is_nullable,
     character_maximum_length,
     numeric_precision,
-    numeric_scale
+    numeric_scale,
+    extra
 FROM information_schema.columns
 WHERE table_schema = %s
   AND table_name   = %s
@@ -143,6 +145,7 @@ def _fetch_mysql(conn, table_name: str) -> List[ColumnInfo]:
             char_max_length=row["character_maximum_length"],
             numeric_precision=row["numeric_precision"],
             numeric_scale=row["numeric_scale"],
+            is_auto_increment="auto_increment" in (row["extra"] or "").lower(),
         )
         for row in rows
     ]

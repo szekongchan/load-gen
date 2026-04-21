@@ -110,9 +110,9 @@ Initially targeting:
 # Install dependencies
 pip install -r requirements.txt
 
-# Run load test (headless, 10 users, 60 seconds)
-locust -f locustfile.py --headless -u 10 -r 2 -t 60s \
-  --host postgresql://user:pass@localhost:5432/mydb \
+# Run load test (headless, 4 users)
+locust -f locustfile.py --headless -u 4 -r 2 \
+  --host mysql://user:pass@localhost:5432/mydb \
   --table my_table \
   --csv=results --html=report.html
 ```
