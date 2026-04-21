@@ -25,6 +25,8 @@ class ColumnInfo:
     numeric_precision: Optional[int]
     numeric_scale: Optional[int]
     is_auto_increment: bool = False  # True for AUTO_INCREMENT / SERIAL columns
+    is_unsigned: bool = False        # True for UNSIGNED integer columns (MySQL/MariaDB)
+    is_generated: bool = False       # True for VIRTUAL/STORED generated columns
 
 
 def _get_connection():
@@ -72,6 +74,7 @@ _MYSQL_QUERY = """
 SELECT
     column_name,
     data_type,
+    column_type,
     is_nullable,
     character_maximum_length,
     numeric_precision,
@@ -146,6 +149,8 @@ def _fetch_mysql(conn, table_name: str) -> List[ColumnInfo]:
             numeric_precision=row["numeric_precision"],
             numeric_scale=row["numeric_scale"],
             is_auto_increment="auto_increment" in (row["extra"] or "").lower(),
+            is_unsigned="unsigned" in (row["column_type"] or "").lower(),
+            is_generated="generated" in (row["extra"] or "").lower(),
         )
         for row in rows
     ]

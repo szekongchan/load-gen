@@ -29,12 +29,12 @@ _TYPE_MAP: list[tuple[str, Any]] = [
     ("uuid",            lambda col: str(uuid.uuid4())),
     # Boolean
     ("bool",            lambda col: random.choice([True, False])),
-    # Integers
-    ("bigint",          lambda col: random.randint(-(2**62), 2**62)),
-    ("smallint",        lambda col: random.randint(-32768, 32767)),
-    ("tinyint",         lambda col: random.randint(0, 255)),
-    ("integer",         lambda col: random.randint(-(2**30), 2**30)),
-    ("int",             lambda col: random.randint(-(2**30), 2**30)),
+    # Integers — unsigned-aware helpers used at call time
+    ("bigint",          lambda col: _random_int(col, signed_max=2**62, unsigned_max=2**64 - 1)),
+    ("smallint",        lambda col: _random_int(col, signed_max=32767, unsigned_max=65535)),
+    ("tinyint",         lambda col: _random_int(col, signed_max=127, unsigned_max=255)),
+    ("integer",         lambda col: _random_int(col, signed_max=2**30, unsigned_max=2**32 - 1)),
+    ("int",             lambda col: _random_int(col, signed_max=2**30, unsigned_max=2**32 - 1)),
     ("serial",          lambda col: random.randint(1, 2**30)),
     # Floating point
     ("double precision",lambda col: random.uniform(-1e9, 1e9)),
@@ -70,6 +70,12 @@ _TYPE_MAP: list[tuple[str, Any]] = [
 # ---------------------------------------------------------------------------
 # Helper generators
 # ---------------------------------------------------------------------------
+
+def _random_int(col: ColumnInfo, signed_max: int, unsigned_max: int) -> int:
+    if col.is_unsigned:
+        return random.randint(0, unsigned_max)
+    return random.randint(-signed_max, signed_max)
+
 
 def _random_string(col: ColumnInfo) -> str:
     max_len = col.char_max_length or 255
@@ -116,8 +122,8 @@ def generate_row(columns: List[ColumnInfo]) -> Dict[str, Any]:
     """
     row: Dict[str, Any] = {}
     for col in columns:
-        # Skip auto-increment columns — the DB generates these values
-        if col.is_auto_increment:
+        # Skip columns the DB generates itself — no value should be supplied
+        if col.is_auto_increment or col.is_generated:
             continue
         if col.is_nullable and random.random() < config.NULLABLE_NULL_PROBABILITY:
             row[col.name] = None
