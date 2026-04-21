@@ -13,13 +13,13 @@
 
 **Chosen: [Locust](https://locust.io/)**
 
-| Criteria | Locust | JMeter |
-|---|---|---|
-| Language | Python — easy custom SQL logic | Java/XML — harder to extend |
-| Schema discovery | Native DB drivers (`psycopg2`, `pymysql`) | Requires JDBC plugin |
-| Random data gen | `Faker`, `random` — straightforward | Scripted via BeanShell/Groovy |
-| Scripting flexibility | High | Medium |
-| CI/CD integration | Easy (headless, pip installable) | Heavier setup |
+| Criteria              | Locust                                    | JMeter                        |
+| --------------------- | ----------------------------------------- | ----------------------------- |
+| Language              | Python — easy custom SQL logic            | Java/XML — harder to extend   |
+| Schema discovery      | Native DB drivers (`psycopg2`, `pymysql`) | Requires JDBC plugin          |
+| Random data gen       | `Faker`, `random` — straightforward       | Scripted via BeanShell/Groovy |
+| Scripting flexibility | High                                      | Medium                        |
+| CI/CD integration     | Easy (headless, pip installable)          | Heavier setup                 |
 
 Locust enables clean Python modules for schema discovery and data generation, then wraps them in a Locust `User` class for load execution.
 
@@ -47,16 +47,19 @@ load-gen/
 ## Implementation Plan
 
 ### Stage 1 — Project Scaffold
+
 - [ ] Create `requirements.txt` (`locust`, `psycopg2-binary` or `pymysql`, `faker`)
 - [ ] Create `config.py` with DB URL, target table name, and Locust settings
 
 ### Stage 2 — Schema Discovery (`schema_discovery.py`)
+
 - [ ] Connect to the target database using the configured driver
 - [ ] Query `information_schema.columns` for the given table name
 - [ ] Return a structured list of `{column_name, data_type, is_nullable, character_maximum_length, ...}`
 - [ ] Cache schema to avoid repeated metadata queries during load
 
 ### Stage 3 — Random Data Generator (`data_generator.py`)
+
 - [ ] Map SQL data types to generators:
   - `VARCHAR` / `TEXT` → `Faker.word()` / random string up to `max_length`
   - `INTEGER` / `BIGINT` / `SMALLINT` → `random.randint()`
@@ -70,11 +73,13 @@ load-gen/
 - [ ] Produce a `{column: value}` dict for a full row
 
 ### Stage 4 — SQL Builder (`sql_builder.py`)
+
 - [ ] `build_insert(table, row_dict)` → parameterized `INSERT INTO … VALUES (…)` with placeholders
 - [ ] `build_select(table, where_column, value)` → simple `SELECT * FROM … WHERE … = …`
 - [ ] Use parameterized queries (no string interpolation) to prevent SQL injection
 
 ### Stage 5 — Locust Load Test (`locustfile.py`)
+
 - [ ] Define a `SQLUser` class inheriting `locust.User`
 - [ ] On start: run schema discovery, cache schema
 - [ ] Task `insert_row` (weight configurable): generate row → build INSERT → execute
@@ -82,6 +87,7 @@ load-gen/
 - [ ] Record response time and success/failure via Locust events
 
 ### Stage 6 — Testing
+
 - [ ] Unit test schema discovery against a real or mock DB connection
 - [ ] Unit test data generator covers all mapped types and respects nullability
 - [ ] Unit test SQL builder produces valid parameterized SQL strings
@@ -92,6 +98,7 @@ load-gen/
 ## Supported Databases
 
 Initially targeting:
+
 - **PostgreSQL** (via `psycopg2`)
 - **MySQL / MariaDB** (via `pymysql`) — adapter selectable via config
 
@@ -106,5 +113,6 @@ pip install -r requirements.txt
 # Run load test (headless, 10 users, 60 seconds)
 locust -f locustfile.py --headless -u 10 -r 2 -t 60s \
   --host postgresql://user:pass@localhost:5432/mydb \
-  --table my_table
+  --table my_table \
+  --csv=results --html=report.html
 ```
