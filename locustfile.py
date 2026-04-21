@@ -16,7 +16,7 @@ from locust import User, between, events, task
 
 import config
 from data_generator import generate_row
-from schema_discovery import discover_schema
+from schema_discovery import discover_schema, discover_partition_values
 from sql_builder import build_insert, build_select
 
 
@@ -68,6 +68,7 @@ class SQLUser(User):
         """Called once per User when it starts. Discovers schema and opens connection."""
         self._conn = _open_connection()
         self._schema = discover_schema(config.TARGET_TABLE)
+        self._partition_values = discover_partition_values(config.TARGET_TABLE)
 
     def on_stop(self) -> None:
         """Called once per User when it stops. Closes the DB connection."""
@@ -83,7 +84,7 @@ class SQLUser(User):
     @task(config.INSERT_WEIGHT)
     def insert_row(self) -> None:
         """Generate a random row and INSERT it into the target table."""
-        row = generate_row(self._schema)
+        row = generate_row(self._schema, self._partition_values)
         sql, params = build_insert(config.TARGET_TABLE, row)
         self._execute(sql, params, name=f"INSERT {config.TARGET_TABLE}")
 

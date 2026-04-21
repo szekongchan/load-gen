@@ -156,6 +156,47 @@ def _fetch_mysql(conn, table_name: str) -> List[ColumnInfo]:
     ]
 
 
+_MYSQL_PARTITION_QUERY = """
+SELECT DISTINCT
+    partition_expression,
+    partition_description
+FROM information_schema.partitions
+WHERE table_schema = %s
+  AND table_name   = %s
+  AND partition_description IS NOT NULL
+  AND partition_description != 'MAXVALUE';
+"""
+
+
+@functools.lru_cache(maxsize=32)
+def discover_partition_values(table_name: str) -> dict:
+    """
+    Return a dict mapping each partition column name to a list of allowed
+    literal values, e.g. {"nasidentifier": ["uuid1", "uuid2", ...]}.
+
+    Only applicable for MySQL/MariaDB LIST-partitioned tables.
+    Returns an empty dict for PostgreSQL or unpartitioned tables.
+    """
+    if config.DB_ADAPTER != "mysql":
+        return {}
+
+    conn = _get_connection()
+    try:
+        with conn.cursor() as cur:
+            cur.execute(_MYSQL_PARTITION_QUERY, (config.DB_NAME, table_name))
+            rows = cur.fetchall()
+    finally:
+        conn.close()
+
+    result: dict = {}
+    for row in rows:
+        expr = (row["partition_expression"] or "").strip().strip("`")
+        desc = (row["partition_description"] or "").strip().strip("'")
+        if expr and desc:
+            result.setdefault(expr, []).append(desc)
+    return result
+
+
 def invalidate_cache(table_name: Optional[str] = None) -> None:
     """
     Clear the schema cache.

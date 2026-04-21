@@ -113,17 +113,26 @@ def _resolve_generator(col: ColumnInfo):
     return lambda col: _faker.word()
 
 
-def generate_row(columns: List[ColumnInfo]) -> Dict[str, Any]:
+def generate_row(columns: List[ColumnInfo], partition_values: dict | None = None) -> Dict[str, Any]:
     """
     Generate a random row as a {column_name: value} dict.
 
     Nullable columns emit ``None`` with probability
     ``config.NULLABLE_NULL_PROBABILITY``.
+
+    *partition_values* maps column names to lists of allowed values (used to
+    constrain partition key columns so inserts land in a valid partition).
     """
+    if partition_values is None:
+        partition_values = {}
     row: Dict[str, Any] = {}
     for col in columns:
         # Skip columns the DB generates itself — no value should be supplied
         if col.is_auto_increment or col.is_generated:
+            continue
+        # Partition key columns must use a known-valid value
+        if col.name in partition_values:
+            row[col.name] = random.choice(partition_values[col.name])
             continue
         if col.is_nullable and random.random() < config.NULLABLE_NULL_PROBABILITY:
             row[col.name] = None
