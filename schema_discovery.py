@@ -10,7 +10,8 @@ during load testing.
 from __future__ import annotations
 
 import functools
-from dataclasses import dataclass
+import re
+from dataclasses import dataclass, field
 from typing import List, Optional
 
 import config
@@ -27,6 +28,7 @@ class ColumnInfo:
     is_auto_increment: bool = False  # True for AUTO_INCREMENT / SERIAL columns
     is_unsigned: bool = False        # True for UNSIGNED integer columns (MySQL/MariaDB)
     is_generated: bool = False       # True for VIRTUAL/STORED generated columns
+    enum_values: List[str] = field(default_factory=list)  # Valid values for ENUM/SET columns
 
 
 def _get_connection():
@@ -151,9 +153,17 @@ def _fetch_mysql(conn, table_name: str) -> List[ColumnInfo]:
             is_auto_increment="auto_increment" in (row["extra"] or "").lower(),
             is_unsigned="unsigned" in (row["column_type"] or "").lower(),
             is_generated="generated" in (row["extra"] or "").lower(),
+            enum_values=_parse_enum_set_values(row["column_type"] or ""),
         )
         for row in rows
     ]
+
+
+def _parse_enum_set_values(column_type: str) -> List[str]:
+    """Extract the allowed values from an ENUM or SET column_type string."""
+    if not re.match(r"(?:enum|set)\s*\(", column_type, re.IGNORECASE):
+        return []
+    return re.findall(r"'([^']*?)'", column_type)
 
 
 _MYSQL_PARTITION_QUERY = """

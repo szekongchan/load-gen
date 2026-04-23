@@ -60,6 +60,9 @@ _TYPE_MAP: list[tuple[str, Any]] = [
     # Binary
     ("bytea",           lambda col: random.randbytes(random.randint(4, 64))),
     ("blob",            lambda col: random.randbytes(random.randint(4, 64))),
+    # MySQL ENUM / SET — pick a valid value from the allowed list
+    ("enum",            lambda col: random.choice(col.enum_values) if col.enum_values else _faker.word()),
+    ("set",             lambda col: random.choice(col.enum_values) if col.enum_values else _faker.word()),
     # Network / misc PostgreSQL types
     ("inet",            lambda col: _faker.ipv4()),
     ("macaddr",         lambda col: _faker.mac_address()),
