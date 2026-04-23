@@ -46,6 +46,7 @@ _TYPE_MAP: list[tuple[str, Any]] = [
     # Date / time  — order matters: more specific keys before shorter ones
     ("timestamp",       lambda col: _faker.date_time()),
     ("datetime",        lambda col: _faker.date_time()),   # MariaDB/MySQL type
+    ("year",            lambda col: random.randint(1901, 2155)),  # MySQL YEAR type
     ("date",            lambda col: _faker.date_object()),
     ("time",            lambda col: _faker.time_object()),
     ("interval",        lambda col: f"{random.randint(0, 365)} days"),
