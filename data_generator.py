@@ -37,9 +37,9 @@ _TYPE_MAP: list[tuple[str, Any]] = [
     ("int",             lambda col: _random_int(col, signed_max=2**30, unsigned_max=2**32 - 1)),
     ("serial",          lambda col: random.randint(1, 2**30)),
     # Floating point
-    ("double precision",lambda col: random.uniform(-1e9, 1e9)),
-    ("float",           lambda col: random.uniform(-1e9, 1e9)),
-    ("real",            lambda col: round(random.uniform(-1e6, 1e6), 6)),
+    ("double precision",lambda col: _random_float(col, limit=1e9)),
+    ("float",           lambda col: _random_float(col, limit=1e9)),
+    ("real",            lambda col: _random_float(col, limit=1e6, decimals=6)),
     # Fixed precision
     ("numeric",         lambda col: _random_numeric(col)),
     ("decimal",         lambda col: _random_numeric(col)),
@@ -92,8 +92,17 @@ def _random_numeric(col: ColumnInfo) -> float:
     precision = col.numeric_precision or 10
     scale = col.numeric_scale or 2
     max_val = 10 ** (precision - scale) - 1
-    value = random.uniform(-max_val, max_val)
+    min_val = 0 if col.is_unsigned else -max_val
+    value = random.uniform(min_val, max_val)
     return round(value, scale)
+
+
+def _random_float(col: ColumnInfo, limit: float, decimals: Optional[int] = None) -> float:
+    min_val = 0.0 if col.is_unsigned else -limit
+    value = random.uniform(min_val, limit)
+    if decimals is not None:
+        return round(value, decimals)
+    return value
 
 
 def _random_json() -> dict:
