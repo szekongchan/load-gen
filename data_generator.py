@@ -31,6 +31,7 @@ _TYPE_MAP: list[tuple[str, Any]] = [
     ("bool",            lambda col: random.choice([True, False])),
     # Integers — unsigned-aware helpers used at call time
     ("bigint",          lambda col: _random_int(col, signed_max=2**62, unsigned_max=2**64 - 1)),
+    ("mediumint",       lambda col: _random_int(col, signed_max=8388607, unsigned_max=16777215)),
     ("smallint",        lambda col: _random_int(col, signed_max=32767, unsigned_max=65535)),
     ("tinyint",         lambda col: _random_int(col, signed_max=127, unsigned_max=255)),
     ("integer",         lambda col: _random_int(col, signed_max=2**30, unsigned_max=2**32 - 1)),
